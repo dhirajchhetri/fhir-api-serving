@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run synth
+      - run: python -m unittest discover -s services/lakehouse -t services/lakehouse
+      - name: template contains the main resources
+        run: |
+          grep -R -q 'AWS::HealthLake::FHIRDatastore' cdk.out
+          grep -R -q 'AWS::Athena::WorkGroup' cdk.out
+          grep -R -q 'AWS::Cognito::UserPool' cdk.out
+          grep -R -q 'AWS::SageMaker::Endpoint' cdk.out
+          grep -R -q 'AWS::Glue::Database' cdk.out
+          grep -R -q 'AWS::Neptune::DBCluster' cdk.out
