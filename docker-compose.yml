@@ -1,0 +1,67 @@
+services:
+  localstack:
+    image: localstack/localstack:3.8
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,dynamodb
+      AWS_DEFAULT_REGION: us-east-1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  init-aws:
+    image: amazon/aws-cli:2.22.35
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+    entrypoint: ["/bin/sh", "/init/init.sh"]
+    volumes:
+      - ./infra/localstack/init.sh:/init/init.sh:ro
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: woundcare
+      POSTGRES_PASSWORD: woundcare
+      POSTGRES_DB: woundcare
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/sql/aurora-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+  api:
+    build: .
+    depends_on:
+      init-aws:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+    environment:
+      PORT: "3000"
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      AUDIT_BUCKET: woundcare-audit
+      IDEMPOTENCY_TABLE: woundcare-idempotency
+      REDIS_URL: redis://redis:6379
+      FHIR_BACKEND: memory
+      ANALYTICS_BACKEND: sqlite
+      RISK_BACKEND: reference
+      SEED: "true"
+    ports:
+      - "3000:3000"
