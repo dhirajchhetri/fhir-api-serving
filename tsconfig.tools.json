@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strictPropertyInitialization": false
+  },
+  "include": ["infra/**/*", "services/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist", "cdk.out"]
+}

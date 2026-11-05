@@ -1,0 +1,10 @@
+node_modules/
+dist/
+cdk.out/
+cdk.context.json
+coverage/
+.env
+dev-keys/
+*.tsbuildinfo
+data/local.sqlite
+.DS_Store
